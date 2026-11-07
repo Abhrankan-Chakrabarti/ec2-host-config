@@ -1,0 +1,13 @@
+[Unit]
+Description=Generate private infrastructure status page
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/abhrankan-status
+
+# No privileges beyond what the collector currently needs.
+# The service is intentionally root because it reads
+# Let's Encrypt certificate files and system service state.
+

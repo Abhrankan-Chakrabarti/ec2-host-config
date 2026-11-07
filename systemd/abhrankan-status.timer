@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh infrastructure status page
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

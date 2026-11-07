@@ -1,0 +1,27 @@
+# /etc/systemd/system/quartz-oracle.service
+[Unit]
+Description=Quartz Oracle CTF timing challenge server
+After=network.target
+
+[Service]
+Type=simple
+User=quartzoracle
+WorkingDirectory=/opt/quartz-oracle-ctf
+EnvironmentFile=/etc/quartz-oracle.env
+ExecStart=/usr/bin/python3 /opt/quartz-oracle-ctf/oracle_server.py
+Restart=on-failure
+RestartSec=2
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+CapabilityBoundingSet=
+MemoryMax=64M
+TasksMax=32

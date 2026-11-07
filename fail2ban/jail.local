@@ -1,0 +1,17 @@
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+banaction = nftables-multiport
+
+[nginx-http-auth]
+enabled = true
+port    = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 4
+bantime  = 1d
+
+[sshd]
+enabled = true
+port    = ssh
+backend = systemd
+maxretry = 4
+bantime  = 1d

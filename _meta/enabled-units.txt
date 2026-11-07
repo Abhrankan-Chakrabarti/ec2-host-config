@@ -1,0 +1,37 @@
+UNIT FILE                            STATE   PRESET
+amazon-ssm-agent.service             enabled enabled
+auditd.service                       enabled enabled
+chrony-config.service                enabled enabled
+chronyd.service                      enabled enabled
+cloud-config.service                 enabled disabled
+cloud-final.service                  enabled disabled
+cloud-init-local.service             enabled disabled
+cloud-init.service                   enabled disabled
+crond.service                        enabled enabled
+crypto-lab.service                   enabled disabled
+dbus-broker.service                  enabled enabled
+docker.service                       enabled disabled
+fail2ban.service                     enabled disabled
+getty@.service                       enabled enabled
+import-state.service                 enabled enabled
+irqbalance.service                   enabled enabled
+lab-api.service                      enabled disabled
+nfs-convert.service                  enabled disabled
+nginx.service                        enabled disabled
+pixel-forensics.service              enabled disabled
+quartz-oracle.service                enabled disabled
+rpmdb-rebuild.service                enabled enabled
+selinux-autorelabel-mark.service     enabled enabled
+sshd.service                         enabled enabled
+sysstat.service                      enabled enabled
+systemd-boot-update.service          enabled enabled
+systemd-homed-activate.service       enabled disabled
+systemd-homed.service                enabled enabled
+systemd-network-generator.service    enabled enabled
+systemd-networkd-wait-online.service enabled disabled
+systemd-networkd.service             enabled enabled
+systemd-pstore.service               enabled enabled
+systemd-resolved.service             enabled enabled
+update-motd.service                  enabled enabled
+
+34 unit files listed.

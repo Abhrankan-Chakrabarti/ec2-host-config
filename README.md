@@ -8,16 +8,16 @@ paths, never credentials.
 
 | Path | Source on host |
 | --- | --- |
-| `nginx/conf.d/` | `/etc/nginx/conf.d/` |
+| `nginx/` | `/etc/nginx/nginx.conf`, `/etc/nginx/conf.d/` |
 | `backup/` | EBS Data Lifecycle Manager policy JSON (applied via AWS CLI) |
-| `ssh/` | `/etc/ssh/sshd_config.d/` |
-| `fail2ban/` | `/etc/fail2ban/jail.local`, `/etc/fail2ban/jail.d/` |
+| `ssh/` | `/etc/ssh/sshd_config`, `/etc/ssh/sshd_config.d/` |
+| `fail2ban/` | `/etc/fail2ban/jail.local`, `jail.d/`, `fail2ban.conf` |
 | `journald/` | `/etc/systemd/journald.conf.d/` |
 | `dnf/` | `/etc/dnf/automatic.conf` |
-| `systemd/` | `/etc/systemd/system/*.service` for self-hosted services |
-| `letsencrypt/` | `/etc/letsencrypt/renewal/*.conf`, `cli.ini` (no keys) |
-| `scripts/` | `/usr/local/bin/update-all` and related helpers |
-| `cron/` | `/etc/cron.d/` entries |
+| `systemd/` | `/etc/systemd/system/*.service`, `*.timer` (host-local only) |
+| `letsencrypt/` | `renewal/*.conf`, `cli.ini`, `options-ssl-nginx.conf` (no keys) |
+| `scripts/` | `/usr/local/bin/update-all`, collection helper |
+| `_meta/` | generated inventories: crontabs, enabled unit list |
 
 ## Never committed
 
@@ -29,6 +29,12 @@ paths, never credentials.
 
 ## Restore
 
-Configs are copied back by hand after review; `nginx -t` precedes any reload and
-`systemctl daemon-reload` precedes any unit restart. Secrets are re-created on
-the host, not restored from this repo.
+Review, then copy each tree back to its source path with `install -D -m 0644`.
+`nginx -t` precedes any reload and `systemctl daemon-reload` precedes any unit
+restart. Secrets are re-created on the host, not restored from this repo.
+
+## Refresh
+
+Run `scripts/collect-host-config.sh` on the host, then replace the trees here
+with its output. The script re-execs under `sudo`, skips secret paths, and
+prints a scan of anything that looks credential-like before you commit.
