@@ -39,3 +39,7 @@ restart. Secrets are re-created on the host, not restored from this repo.
 Run `scripts/collect-host-config.sh` on the host, then replace the trees here
 with its output. The script re-execs under `sudo`, skips secret paths, and
 prints a scan of anything that looks credential-like before you commit.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
