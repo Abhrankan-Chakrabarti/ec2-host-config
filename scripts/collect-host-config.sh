@@ -40,8 +40,16 @@ for u in /etc/systemd/system/*.service /etc/systemd/system/*.timer; do
   [ -f "$u" ] && [ ! -L "$u" ] && copy "$u"
 done
 
-crontab -l -u root 2>/dev/null > "$OUT/_meta/root.crontab" || true
-crontab -l -u ec2-user 2>/dev/null > "$OUT/_meta/ec2-user.crontab" || true
+dump_crontab() {
+  local user=$1 dest=$2
+  if crontab -l -u "$user" 2>/dev/null | grep -q .; then
+    crontab -l -u "$user" 2>/dev/null > "$dest"
+  else
+    echo "# no crontab entries for $user" > "$dest"
+  fi
+}
+dump_crontab root "$OUT/_meta/root.crontab"
+dump_crontab ec2-user "$OUT/_meta/ec2-user.crontab"
 systemctl list-unit-files --type=service --state=enabled --no-pager \
   > "$OUT/_meta/enabled-units.txt" 2>/dev/null || true
 
