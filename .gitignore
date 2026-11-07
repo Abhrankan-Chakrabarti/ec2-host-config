@@ -1,0 +1,22 @@
+# Secrets — never commit
+*.env
+.env
+.env.*
+!/.env.example
+*.htpasswd
+*.pem
+*.key
+id_rsa*
+ssh_host_*
+*.p12
+credentials*
+secrets*
+
+# Let's Encrypt private material
+letsencrypt/archive/
+letsencrypt/live/
+letsencrypt/accounts/
+
+# OS noise
+.DS_Store
+Thumbs.db

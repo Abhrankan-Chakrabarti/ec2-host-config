@@ -1,0 +1,27 @@
+{
+  "ExecutionRoleArn": "arn:aws:iam::REPLACE_ACCOUNT_ID:role/service-role/AWSDataLifecycleManagerDefaultRole",
+  "Description": "Daily EBS snapshots of volumes tagged Backup daily 7 day retention",
+  "State": "ENABLED",
+  "PolicyDetails": {
+    "PolicyType": "EBS_SNAPSHOT_MANAGEMENT",
+    "ResourceTypes": ["VOLUME"],
+    "TargetTags": [
+      { "Key": "Backup", "Value": "daily" }
+    ],
+    "Schedules": [
+      {
+        "Name": "Daily-0400-UTC",
+        "CreateRule": {
+          "Interval": 24,
+          "IntervalUnit": "HOURS",
+          "Times": ["04:00"]
+        },
+        "RetainRule": { "Count": 7 },
+        "CopyTags": true,
+        "TagsToAdd": [
+          { "Key": "CreatedBy", "Value": "DLM" }
+        ]
+      }
+    ]
+  }
+}
