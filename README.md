@@ -1,8 +1,9 @@
 # ec2-host-config
 
 Sanitized configuration snapshot for the personal-services EC2 instance
-(`i-0da26b37e9f8a0657`, AL2023, arm64). Private repo: contains hostnames and
-paths, never credentials.
+(`i-0da26b37e9f8a0657`, AL2023, arm64). Public repo: contains hostnames and
+paths, never credentials. Kept public on purpose so it stays recoverable
+without access to the owner's account.
 
 ## Layout
 
