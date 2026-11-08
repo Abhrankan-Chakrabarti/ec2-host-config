@@ -1,5 +1,7 @@
 # ec2-host-config
 
+[![Config CI](https://github.com/Abhrankan-Chakrabarti/ec2-host-config/actions/workflows/ci.yml/badge.svg)](https://github.com/Abhrankan-Chakrabarti/ec2-host-config/actions/workflows/ci.yml)
+
 Sanitized configuration snapshot for the personal-services EC2 instance
 (`i-0da26b37e9f8a0657`, AL2023, arm64). Public repo: contains hostnames and
 paths, never credentials. Kept public on purpose so it stays recoverable
