@@ -52,6 +52,12 @@ git config core.hooksPath .githooks
 private keys, AWS/GitHub/Slack tokens, URL credentials, and htpasswd hashes.
 Bypass with `--no-verify` only after checking the hit by hand.
 
+## Validation
+
+CI checks shell syntax, parses the DLM policy JSON, and runs `nginx -t` against
+`nginx.conf` plus every vhost using generated stub certificates and htpasswd
+files, so a broken refresh fails here rather than on the host.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
