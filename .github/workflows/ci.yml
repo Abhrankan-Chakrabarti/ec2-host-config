@@ -33,26 +33,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate stub TLS material
+        run: |
+          mkdir -p "$RUNNER_TEMP/tls"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=ci.invalid \
+            -keyout "$RUNNER_TEMP/tls/privkey.pem" -out "$RUNNER_TEMP/tls/fullchain.pem" >/dev/null 2>&1
+          openssl dhparam -dsaparam -out "$RUNNER_TEMP/tls/ssl-dhparams.pem" 2048 >/dev/null 2>&1
+
       - name: Validate nginx configuration
         run: |
-          docker run --rm -v "$PWD:/repo:ro" nginx:stable-alpine sh -euc '
+          docker run --rm -v "$PWD:/repo:ro" -v "$RUNNER_TEMP/tls:/tls:ro" nginx:stable-alpine sh -euc '
             mkdir -p /usr/share/nginx/modules /etc/nginx/default.d /etc/letsencrypt/live
             rm -f /etc/nginx/conf.d/default.conf
             cp /repo/nginx/nginx.conf /etc/nginx/nginx.conf
             cp /repo/nginx/conf.d/*.conf /etc/nginx/conf.d/
             cp /repo/letsencrypt/options-ssl-nginx.conf /etc/letsencrypt/
+            cp /tls/privkey.pem /tls/fullchain.pem /tls/ssl-dhparams.pem /etc/letsencrypt/
 
             # Certbot material is not in this repo; stand in a throwaway pair.
-            openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=ci.invalid \
-              -keyout /tmp/privkey.pem -out /tmp/fullchain.pem >/dev/null 2>&1
-            openssl dhparam -dsaparam -out /etc/letsencrypt/ssl-dhparams.pem 2048 >/dev/null 2>&1
-
             for d in abhrankan.duckdns.org cockpit.abhrankan.duckdns.org \
                      status.abhrankan.duckdns.org uptime.abhrankan.duckdns.org \
                      forensic.dpdns.org pixel.forensic.dpdns.org; do
               mkdir -p "/etc/letsencrypt/live/$d"
-              cp /tmp/fullchain.pem "/etc/letsencrypt/live/$d/fullchain.pem"
-              cp /tmp/privkey.pem "/etc/letsencrypt/live/$d/privkey.pem"
+              cp /tls/fullchain.pem "/etc/letsencrypt/live/$d/fullchain.pem"
+              cp /tls/privkey.pem "/etc/letsencrypt/live/$d/privkey.pem"
             done
 
             : > /etc/nginx/school.htpasswd
