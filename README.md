@@ -40,6 +40,16 @@ Run `scripts/collect-host-config.sh` on the host, then replace the trees here
 with its output. The script re-execs under `sudo`, skips secret paths, and
 prints a scan of anything that looks credential-like before you commit.
 
+Enable the commit guard once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`.githooks/pre-commit` rejects sensitive filenames and scans staged text for
+private keys, AWS/GitHub/Slack tokens, URL credentials, and htpasswd hashes.
+Bypass with `--no-verify` only after checking the hit by hand.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

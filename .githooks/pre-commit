@@ -1,0 +1,30 @@
+#!/bin/sh
+# Blocks credentials from entering this public repo.
+set -eu
+
+blocked=0
+fail() { printf 'pre-commit: %s\n' "$1" >&2; blocked=1; }
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$files" ] || exit 0
+
+for f in $files; do
+  case "$f" in
+    *.env|.env|.env.*|*.htpasswd|*.pem|*.key|*.p12|*.kdbx|id_rsa*|id_ed25519*|ssh_host_*|credentials*|*secret*)
+      fail "refusing to add sensitive filename: $f" ;;
+  esac
+done
+
+for f in $files; do
+  case "$f" in
+    *.png|*.jpg|*.jpeg|*.gif|*.webp|*.ico|*.pdf|*.zip|*.gz) continue ;;
+  esac
+  git show ":$f" 2>/dev/null | grep -nE -e \
+    '-----BEGIN [A-Z ]*PRIVATE KEY-----|(AKIA|ASIA)[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|github_[a-z]+_|xox[baprs]-[0-9A-Za-z-]{10,}|aws_secret_access_key[[:space:]]*=|://[^/[:space:]:@]+:[^/[:space:]@]+@|^[A-Za-z0-9._-]+:\$(2[aby]|apr1)\$' \
+    >/dev/null 2>&1 && fail "possible credential in $f"
+done
+
+if [ "$blocked" -eq 1 ]; then
+  echo "pre-commit: commit aborted. Inspect the file, or bypass with --no-verify if it is a false positive." >&2
+  exit 1
+fi
