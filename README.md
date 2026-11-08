@@ -32,9 +32,55 @@ without access to the owner's account.
 
 ## Restore
 
-Review, then copy each tree back to its source path with `install -D -m 0644`.
-`nginx -t` precedes any reload and `systemctl daemon-reload` precedes any unit
-restart. Secrets are re-created on the host, not restored from this repo.
+Two cases: putting files back on a live host, or rebuilding the host.
+
+### Config onto a live host
+
+Copy each tree back to its source path with `install -D -m 0644`, then:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+sudo systemctl daemon-reload
+sudo systemctl restart pixel-forensics quartz-oracle lab-api crypto-lab abhrankan-status
+```
+
+### Rebuild the instance
+
+1. Create a volume from the newest snapshot and attach it as the root device:
+
+   ```bash
+   aws ec2 describe-snapshots --owner-ids self --filters Name=tag:Backup,Values=daily \
+     --query 'sort_by(Snapshots,&StartTime)[-1].SnapshotId' --output text
+   aws ec2 create-volume --snapshot-id <snap-id> --availability-zone <az> --volume-type gp3
+   ```
+
+   Attach it to a new instance as `/dev/xvda`, then boot and confirm SSH.
+
+2. Recreate the files deliberately kept out of this repo: `/etc/pixel-forensics.env`,
+   `/etc/quartz-oracle.env`, and `/etc/nginx/{school,status,cockpit}.htpasswd`
+   (`htpasswd -B` per user).
+
+3. Clone this repo and apply the trees from the Layout table, then run the
+   live-host commands above. Install the scripts with their mode intact:
+
+   ```bash
+   sudo install -m 0755 scripts/update-all /usr/local/bin/update-all
+   sudo sshd -t && sudo systemctl reload sshd    # after copying ssh/
+   ```
+
+4. Reissue certificates one name at a time, matching the existing `live/`
+   layout — `letsencrypt/` here holds renewal *configuration* only, never keys:
+
+   ```bash
+   for d in abhrankan.duckdns.org cockpit.abhrankan.duckdns.org \
+            status.abhrankan.duckdns.org uptime.abhrankan.duckdns.org \
+            forensic.dpdns.org pixel.forensic.dpdns.org; do
+     sudo certbot certonly --nginx -d "$d"
+   done
+   ```
+
+5. Verify: `curl -fsS https://pixel.forensic.dpdns.org/api/health`, then check
+   the UptimeRobot monitors recover.
 
 ## Refresh
 
