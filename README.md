@@ -34,6 +34,10 @@ without access to the owner's account.
 
 Two cases: putting files back on a live host, or rebuilding the host.
 
+`v1.0.0` is the known-good baseline. If this repo is lost or rewritten, download
+the release archive (`Source code (zip)`) from the Releases page rather than
+cloning `main`.
+
 ### Config onto a live host
 
 Copy each tree back to its source path with `install -D -m 0644`, then:
