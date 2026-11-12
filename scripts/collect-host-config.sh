@@ -40,6 +40,11 @@ for u in /etc/systemd/system/*.service /etc/systemd/system/*.timer; do
   [ -f "$u" ] && [ ! -L "$u" ] && copy "$u"
 done
 
+# Unit drop-ins carry hardening that the base unit does not show.
+for d in /etc/systemd/system/*.d; do
+  [ -d "$d" ] && copy "$d"/*.conf
+done
+
 dump_crontab() {
   local user=$1 dest=$2
   if crontab -l -u "$user" 2>/dev/null | grep -q .; then
