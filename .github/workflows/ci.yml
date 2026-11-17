@@ -19,6 +19,7 @@ jobs:
         run: |
           bash -n scripts/update-all
           bash -n scripts/collect-host-config.sh
+          bash -n scripts/quartz-oracle-heartbeat
           sh -n .githooks/pre-commit
 
       - name: JSON validity

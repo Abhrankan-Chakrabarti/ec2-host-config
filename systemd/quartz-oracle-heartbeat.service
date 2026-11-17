@@ -1,0 +1,15 @@
+[Unit]
+Description=Quartz Oracle protocol heartbeat
+After=network-online.target quartz-oracle.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/quartz-oracle-heartbeat.env
+ExecStart=/usr/local/bin/quartz-oracle-heartbeat
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

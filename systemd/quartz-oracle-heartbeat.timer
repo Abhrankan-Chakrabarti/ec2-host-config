@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the Quartz Oracle heartbeat every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=20s
+AccuracySec=30s
+Unit=quartz-oracle-heartbeat.service
+
+[Install]
+WantedBy=timers.target

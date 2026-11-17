@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Protocol-level liveness check for the Quartz Oracle.
+#
+# A bare TCP connect proves nothing here: nginx accepts :9998 whether or not
+# the oracle is alive, and the kernel backlog completes handshakes while the
+# serial server is busy with someone else. This opens the loopback upstream,
+# sends one valid query, and requires a numeric timing reply.
+#
+# Exit status: 0 answered; 1 not answered (including "busy, unverified").
+#
+# Optional KUMA_PUSH_URL (Uptime Kuma push monitor) is read from
+# /etc/quartz-oracle-heartbeat.env; it carries the monitor token, so it is
+# never stored in this repo.
+set -u
+
+HOST=${HEARTBEAT_HOST:-127.0.0.1}
+PORT=${HEARTBEAT_PORT:-9999}
+CONNECT_TIMEOUT=${HEARTBEAT_TIMEOUT:-10}
+PUSH_URL=${KUMA_PUSH_URL:-}
+
+log() { printf 'quartz-oracle-heartbeat: %s\n' "$*"; }
+
+push() {
+  [ -n "$PUSH_URL" ] || return 0
+  curl -fsS --max-time 5 -o /dev/null --get "$PUSH_URL" \
+    --data-urlencode "status=$1" \
+    --data-urlencode "msg=$2" \
+    --data-urlencode "ping=$3"
+}
+
+listening() {
+  command -v ss >/dev/null 2>&1 || return 1
+  [ -n "$(ss -H -ltn "sport = :$PORT" 2>/dev/null)" ]
+}
+
+started=$(date +%s%3N)
+
+reply=$(timeout "$CONNECT_TIMEOUT" bash -c '
+  exec 3<>"/dev/tcp/$1/$2" || exit 1
+  IFS= read -r -t 5 banner_n <&3 || exit 1
+  IFS= read -r -t 5 banner_e <&3 || exit 1
+  printf "0a\n" >&3 || exit 1
+  IFS= read -r -t 5 timing <&3 || exit 1
+  printf "%s|%s|%s" "$banner_n" "$banner_e" "$timing"
+' _ "$HOST" "$PORT" 2>/dev/null)
+rc=$?
+
+if [ "$rc" -eq 0 ]; then
+  IFS='|' read -r banner_n banner_e timing <<<"$reply"
+  if [[ $banner_n =~ ^N=[0-9]+$ && $banner_e =~ ^e=[0-9]+$ && $timing =~ ^[0-9]+\.[0-9]+$ ]]; then
+    elapsed=$(( $(date +%s%3N) - started ))
+    log "ok ($banner_n $banner_e, reply ${timing}s, ${elapsed}ms round trip)"
+    push up "answered in ${elapsed}ms" "$elapsed" || log "warning: push to Uptime Kuma failed"
+    exit 0
+  fi
+  log "unexpected reply: ${reply:-<empty>}"
+  push down "unexpected protocol reply" 0 || true
+  exit 1
+fi
+
+if [ "$rc" -eq 124 ] && listening; then
+  # A live player session ahead of us in the serial backlog looks exactly
+  # like this. Not a proven failure, so stay silent and let the monitor's
+  # own staleness rule decide.
+  log "timed out after ${CONNECT_TIMEOUT}s; listener up, likely a running session"
+  exit 1
+fi
+
+log "not answered (rc=$rc)"
+push down "not answering on ${HOST}:${PORT}" 0 || true
+exit 1

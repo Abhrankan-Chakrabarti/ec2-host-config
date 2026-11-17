@@ -19,12 +19,13 @@ without access to the owner's account.
 | `dnf/` | `/etc/dnf/automatic.conf` |
 | `systemd/` | `/etc/systemd/system/*.service`, `*.timer` (host-local only) |
 | `letsencrypt/` | `renewal/*.conf`, `cli.ini`, `options-ssl-nginx.conf` (no keys) |
-| `scripts/` | `/usr/local/bin/update-all`, collection helper |
+| `scripts/` | `/usr/local/bin/update-all`, `/usr/local/bin/quartz-oracle-heartbeat`, collection helper |
 | `_meta/` | generated inventories: crontabs, enabled unit list |
 
 ## Never committed
 
 - `/etc/pixel-forensics.env`, `/etc/quartz-oracle.env` (application secrets)
+- `/etc/quartz-oracle-heartbeat.env` (Uptime Kuma push token)
 - `/etc/nginx/*.htpasswd` (password hashes)
 - `/etc/letsencrypt/archive/`, `live/`, `accounts/` (TLS private keys)
 - `/etc/ssh/ssh_host_*` (host private keys)
@@ -107,6 +108,31 @@ Bypass with `--no-verify` only after checking the hit by hand.
 CI checks shell syntax, parses the DLM policy JSON, and runs `nginx -t` against
 `nginx.conf` plus every vhost using generated stub certificates and htpasswd
 files, so a broken refresh fails here rather than on the host.
+
+## Monitoring
+
+`quartz-oracle-heartbeat` connects to the oracle's loopback upstream, sends one
+`0a` query, and requires a numeric timing reply before pushing `up` to Uptime
+Kuma. A TCP port check cannot do this: nginx accepts `:9998` even with the
+oracle dead, and the kernel backlog completes handshakes while the serial
+server is busy.
+
+Install the script and units, then create a **Push** monitor in Uptime Kuma
+(interval 300s, retries 2) and put its URL in the env file:
+
+```bash
+sudo install -m 0755 scripts/quartz-oracle-heartbeat /usr/local/bin/
+sudo install -m 0644 systemd/quartz-oracle-heartbeat.{service,timer} /etc/systemd/system/
+sudo install -m 0600 /dev/null /etc/quartz-oracle-heartbeat.env
+sudo vi /etc/quartz-oracle-heartbeat.env   # KUMA_PUSH_URL=http://127.0.0.1:3001/api/push/<token>
+sudo systemctl daemon-reload
+sudo systemctl enable --now quartz-oracle-heartbeat.timer
+```
+
+When a player holds the serial oracle, the heartbeat times out but stays
+silent rather than pushing `down`, so a long solve does not page anyone; the
+monitor's own staleness rule decides. Run it by hand to check: exit 0 means
+answered, exit 1 means unverified or dead.
 
 ## License
 

@@ -35,6 +35,7 @@ copy /etc/letsencrypt/renewal/*.conf /etc/letsencrypt/cli.ini
 copy /etc/letsencrypt/options-ssl-nginx.conf
 copy /etc/cron.d/* 2>/dev/null || true
 copy /usr/local/bin/update-all 2>/dev/null || true
+copy /usr/local/bin/quartz-oracle-heartbeat 2>/dev/null || true
 
 # Only host-local (non-symlink) unit files; vendor units are reproducible from packages.
 for u in /etc/systemd/system/*.service /etc/systemd/system/*.timer; do
