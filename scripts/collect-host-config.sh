@@ -26,6 +26,7 @@ copy() {
 
 copy /etc/nginx/nginx.conf
 copy /etc/nginx/conf.d/*.conf
+copy /etc/nginx/stream.d/*.conf
 copy /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf
 copy /etc/fail2ban/jail.local /etc/fail2ban/fail2ban.conf /etc/fail2ban/jail.d/*.conf /etc/fail2ban/filter.d/*.local
 copy /etc/systemd/journald.conf.d/*.conf

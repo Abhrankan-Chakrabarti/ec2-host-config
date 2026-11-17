@@ -11,7 +11,7 @@ without access to the owner's account.
 
 | Path | Source on host |
 | --- | --- |
-| `nginx/` | `/etc/nginx/nginx.conf`, `/etc/nginx/conf.d/` |
+| `nginx/` | `/etc/nginx/nginx.conf`, `/etc/nginx/conf.d/`, `/etc/nginx/stream.d/` |
 | `backup/` | EBS Data Lifecycle Manager policy JSON (applied via AWS CLI) |
 | `ssh/` | `/etc/ssh/sshd_config`, `/etc/ssh/sshd_config.d/` |
 | `fail2ban/` | `/etc/fail2ban/jail.local`, `jail.d/`, `fail2ban.conf` |
