@@ -35,7 +35,7 @@ without access to the owner's account.
 
 Two cases: putting files back on a live host, or rebuilding the host.
 
-`v1.0.0` is the known-good baseline. If this repo is lost or rewritten, download
+`v1.1.0` is the known-good baseline. If this repo is lost or rewritten, download
 the release archive (`Source code (zip)`) from the Releases page rather than
 cloning `main`.
 
@@ -62,14 +62,23 @@ sudo systemctl restart pixel-forensics quartz-oracle lab-api crypto-lab abhranka
    Attach it to a new instance as `/dev/xvda`, then boot and confirm SSH.
 
 2. Recreate the files deliberately kept out of this repo: `/etc/pixel-forensics.env`,
-   `/etc/quartz-oracle.env`, and `/etc/nginx/{school,status,cockpit}.htpasswd`
-   (`htpasswd -B` per user).
+   `/etc/quartz-oracle.env`, `/etc/quartz-oracle-heartbeat.env`, and
+   `/etc/nginx/{school,status,cockpit}.htpasswd` (`htpasswd -B` per user).
 
 3. Clone this repo and apply the trees from the Layout table, then run the
-   live-host commands above. Install the scripts with their mode intact:
+   live-host commands above. `nginx.conf` loads the `stream{}` block, so the
+   module package is required on a fresh host:
+
+   ```bash
+   sudo dnf install -y nginx-mod-stream
+   sudo install -D -m 0644 nginx/stream.d/quartz-oracle.conf /etc/nginx/stream.d/quartz-oracle.conf
+   ```
+
+   Install the scripts with their mode intact:
 
    ```bash
    sudo install -m 0755 scripts/update-all /usr/local/bin/update-all
+   sudo install -m 0755 scripts/quartz-oracle-heartbeat /usr/local/bin/quartz-oracle-heartbeat
    sudo sshd -t && sudo systemctl reload sshd    # after copying ssh/
    ```
 
