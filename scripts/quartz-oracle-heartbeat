@@ -50,7 +50,11 @@ if [ "$rc" -eq 0 ]; then
   if [[ $banner_n =~ ^N=[0-9]+$ && $banner_e =~ ^e=[0-9]+$ && $timing =~ ^[0-9]+\.[0-9]+$ ]]; then
     elapsed=$(( $(date +%s%3N) - started ))
     log "ok ($banner_n $banner_e, reply ${timing}s, ${elapsed}ms round trip)"
-    push up "answered in ${elapsed}ms" "$elapsed" || log "warning: push to Uptime Kuma failed"
+    if [ -n "$PUSH_URL" ]; then
+      push up "answered in ${elapsed}ms" "$elapsed" || log "warning: push to Uptime Kuma failed"
+    else
+      log "KUMA_PUSH_URL not set; journal-only"
+    fi
     exit 0
   fi
   log "unexpected reply: ${reply:-<empty>}"
