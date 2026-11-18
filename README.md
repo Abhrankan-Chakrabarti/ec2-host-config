@@ -13,6 +13,7 @@ without access to the owner's account.
 | --- | --- |
 | `nginx/` | `/etc/nginx/nginx.conf`, `/etc/nginx/conf.d/`, `/etc/nginx/stream.d/` |
 | `backup/` | EBS Data Lifecycle Manager policy JSON (applied via AWS CLI) |
+| `monitoring/` | AWS API, not on host: CloudWatch burst-credit alarms and SNS topic |
 | `ssh/` | `/etc/ssh/sshd_config`, `/etc/ssh/sshd_config.d/` |
 | `fail2ban/` | `/etc/fail2ban/jail.local`, `jail.d/`, `fail2ban.conf` |
 | `journald/` | `/etc/systemd/journald.conf.d/` |
@@ -94,7 +95,9 @@ sudo systemctl restart pixel-forensics quartz-oracle lab-api crypto-lab abhranka
    ```
 
 5. Verify: `curl -fsS https://pixel.forensic.dpdns.org/api/health`, then check
-   the UptimeRobot monitors recover.
+   the UptimeRobot monitors recover. Recreate the CloudWatch burst-credit alarms
+   (see [Burst-credit alarms](#burst-credit-alarms)); they live in the account,
+   not on the volume.
 
 ## Refresh
 
@@ -114,9 +117,10 @@ Bypass with `--no-verify` only after checking the hit by hand.
 
 ## Validation
 
-CI checks shell syntax, parses the DLM policy JSON, and runs `nginx -t` against
-`nginx.conf` plus every vhost using generated stub certificates and htpasswd
-files, so a broken refresh fails here rather than on the host.
+CI checks shell syntax (including the alarm setup script), parses the DLM
+policy JSON, and runs `nginx -t` against `nginx.conf` plus every vhost using
+generated stub certificates and htpasswd files, so a broken refresh fails here
+rather than on the host.
 
 ## Monitoring
 
@@ -142,6 +146,29 @@ When a player holds the serial oracle, the heartbeat times out but stays
 silent rather than pushing `down`, so a long solve does not page anyone; the
 monitor's own staleness rule decides. Run it by hand to check: exit 0 means
 answered, exit 1 means unverified or dead.
+
+### Burst-credit alarms
+
+`t4g.micro` burst credits are invisible to `cpu.stat`, so a sustained burn shows
+up as throttling rather than anything the host can watch. The instance runs in
+`unlimited` credit mode, so `monitoring/setup-cpucredit-alarms.sh` creates two
+alarms on the `ec2-cpucredit-alerts` SNS topic:
+
+- `ec2-cpucreditbalance-low` — `CPUCreditBalance` minimum below 30 for 15
+  minutes. The instance earns 12 credits/hour and caps at 288, so this fires
+  roughly five hours into sustained 100% CPU, before throttling starts.
+- `ec2-cpusurplus-charged` — `CPUSurplusCreditsCharged` above 0 in any 5-minute
+  period. This is the money signal: usage above the 20% baseline that is not
+  repaid becomes billable surplus.
+
+The script is idempotent and takes the email as an argument, never as committed
+text; the subscription must be confirmed from the AWS email before it delivers.
+Missing datapoints (stopped instance) are treated as `notBreaching`, and
+`INSTANCE_ID` overrides the default when the instance is replaced.
+
+```bash
+ALERT_EMAIL=you@example.com monitoring/setup-cpucredit-alarms.sh
+```
 
 ## License
 
