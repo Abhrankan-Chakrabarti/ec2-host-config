@@ -50,6 +50,35 @@ sudo systemctl daemon-reload
 sudo systemctl restart pixel-forensics quartz-oracle lab-api crypto-lab abhrankan-status
 ```
 
+### HTTP hardening
+
+The vhosts are not stock: `nginx.conf` sets `server_tokens off` globally and
+enables gzip for CSS/JS/JSON/SVG, including proxied responses, and every
+`listen 443 ssl` block uses `http2 on;` — syntax that needs nginx 1.25.1 or
+newer (the host runs 1.30.x; check `nginx -v` on a fresh build before trusting
+the reload).
+
+All HTTPS vhosts advertise `Strict-Transport-Security`,
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy` and `Permissions-Policy`, declared once at server level so
+they inherit into every location. Status additionally keeps `X-Robots-Tag` and
+`Cache-Control: no-store`; only the abhrankan vhost serves filesystem assets,
+so only it has the nested `expires 30d` rule. Cockpit's `gzip off` and the
+Cockpit/Kuma asset cache headers are intentional — do not add filesystem
+`expires` rules to proxied vhosts, they would 404 the apps' own assets.
+
+After applying, check negotiation and headers (the three private vhosts answer
+401, which still carries the `always` headers):
+
+```bash
+for host in status cockpit uptime; do
+  echo | openssl s_client -alpn h2 -connect "$host.abhrankan.duckdns.org:443" \
+    -servername "$host.abhrankan.duckdns.org" 2>/dev/null | grep 'ALPN protocol'
+done
+sudo nginx -T | grep -c 'http2 on'    # 5 with every vhost enabled
+curl -skI https://uptime.abhrankan.duckdns.org/ | grep -iE 'strict-transport|x-content-type|x-frame|referrer|permissions'
+```
+
 ### Rebuild the instance
 
 1. Create a volume from the newest snapshot and attach it as the root device:
@@ -94,8 +123,9 @@ sudo systemctl restart pixel-forensics quartz-oracle lab-api crypto-lab abhranka
    done
    ```
 
-5. Verify: `curl -fsS https://pixel.forensic.dpdns.org/api/health`, then check
-   the UptimeRobot monitors recover. Recreate the CloudWatch burst-credit alarms
+5. Verify: `curl -fsS https://pixel.forensic.dpdns.org/api/health`, run the
+   [HTTP hardening](#http-hardening) checks, then check that the UptimeRobot
+   monitors recover. Recreate the CloudWatch burst-credit alarms
    (see [Burst-credit alarms](#burst-credit-alarms)); they live in the account,
    not on the volume.
 
