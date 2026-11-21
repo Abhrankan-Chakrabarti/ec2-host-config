@@ -36,7 +36,7 @@ without access to the owner's account.
 
 Two cases: putting files back on a live host, or rebuilding the host.
 
-`v1.2.4` is the known-good baseline. If this repo is lost or rewritten, download
+`v1.2.5` is the known-good baseline. If this repo is lost or rewritten, download
 the release archive (`Source code (zip)`) from the Releases page rather than
 cloning `main`.
 
