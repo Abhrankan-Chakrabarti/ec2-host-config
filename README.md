@@ -59,10 +59,15 @@ newer (the host runs 1.30.x; check `nginx -v` on a fresh build before trusting
 the reload).
 
 All HTTPS vhosts advertise `Strict-Transport-Security`,
-`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
-`Referrer-Policy` and `Permissions-Policy`, declared once at server level so
-they inherit into every location. Status additionally keeps `X-Robots-Tag` and
-`Cache-Control: no-store`; only the abhrankan vhost serves filesystem assets,
+`X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Referrer-Policy` and
+`Permissions-Policy`, declared once at server level so they inherit into every
+location. `X-Frame-Options` is `DENY` except on cockpit, which must stay
+`SAMEORIGIN` (Cockpit frames its own pages) with `Referrer-Policy: no-referrer`;
+that vhost also `proxy_hide_header`s the upstream copies of HSTS, nosniff, XFO
+and Referrer-Policy, because a second, conflicting `X-Frame-Options` makes
+browsers fall back to `deny` and breaks Cockpit's shell. Status additionally
+keeps `X-Robots-Tag` and `Cache-Control: no-store`; only the abhrankan vhost
+serves filesystem assets,
 so only it has the nested `expires 30d` rule. Cockpit's `gzip off` and the
 Cockpit/Kuma asset cache headers are intentional — do not add filesystem
 `expires` rules to proxied vhosts, they would 404 the apps' own assets.
