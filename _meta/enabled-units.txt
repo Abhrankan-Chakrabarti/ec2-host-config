@@ -32,6 +32,22 @@ systemd-networkd-wait-online.service enabled disabled
 systemd-networkd.service             enabled enabled
 systemd-pstore.service               enabled enabled
 systemd-resolved.service             enabled enabled
-update-motd.service                  enabled enabled
+update-motd.service                  enabled disabled
+cockpit.socket                       enabled disabled
+dbus.socket                          enabled enabled
+docker.socket                        enabled enabled
+pcscd.socket                         enabled enabled
+systemd-networkd.socket              enabled disabled
+systemd-userdbd.socket               enabled enabled
+abhrankan-status.timer               enabled disabled
+certbot-renew.timer                  enabled disabled
+dnf-automatic-install.timer          enabled disabled
+dnf-automatic.timer                  enabled disabled
+fstrim.timer                         enabled enabled
+logrotate.timer                      enabled enabled
+quartz-oracle-heartbeat.timer        enabled disabled
+sysstat-collect.timer                enabled enabled
+sysstat-summary.timer                enabled enabled
+update-motd.timer                    enabled enabled
 
-34 unit files listed.
+50 unit files listed.

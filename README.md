@@ -36,7 +36,7 @@ without access to the owner's account.
 
 Two cases: putting files back on a live host, or rebuilding the host.
 
-`v1.2.6` is the known-good baseline. If this repo is lost or rewritten, download
+`v1.2.7` is the known-good baseline. If this repo is lost or rewritten, download
 the release archive (`Source code (zip)`) from the Releases page rather than
 cloning `main`.
 
@@ -47,9 +47,11 @@ trees are not covered by copying the flat units, so install them explicitly
 (`cockpit.socket.d/override.conf` pins the socket to loopback):
 
 ```bash
+sudo install -D -m 0644 systemd/cockpit.socket.d/override.conf /etc/systemd/system/cockpit.socket.d/override.conf
+sudo install -D -m 0644 systemd/dnf-automatic-install.timer.d/time.conf /etc/systemd/system/dnf-automatic-install.timer.d/time.conf
+sudo install -D -m 0644 systemd/dnf-automatic-install.service.d/autoreboot.conf /etc/systemd/system/dnf-automatic-install.service.d/autoreboot.conf
 sudo install -D -m 0644 systemd/quartz-oracle.service.d/bind.conf /etc/systemd/system/quartz-oracle.service.d/bind.conf
 sudo install -D -m 0644 systemd/quartz-oracle.service.d/hardening.conf /etc/systemd/system/quartz-oracle.service.d/hardening.conf
-sudo install -D -m 0644 systemd/cockpit.socket.d/override.conf /etc/systemd/system/cockpit.socket.d/override.conf
 ```
 
 then:
