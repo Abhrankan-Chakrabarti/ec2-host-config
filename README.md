@@ -18,10 +18,10 @@ without access to the owner's account.
 | `fail2ban/` | `/etc/fail2ban/jail.local`, `jail.d/`, `fail2ban.conf` |
 | `journald/` | `/etc/systemd/journald.conf.d/` |
 | `dnf/` | `/etc/dnf/automatic.conf` |
-| `systemd/` | `/etc/systemd/system/*.service`, `*.timer` (host-local only) |
+| `systemd/` | `/etc/systemd/system/*.service`, `*.socket`, `*.timer`, and `*.d/*.conf` (host-local only) |
 | `letsencrypt/` | `renewal/*.conf`, `cli.ini`, `options-ssl-nginx.conf` (no keys) |
 | `scripts/` | `/usr/local/bin/update-all`, `/usr/local/bin/quartz-oracle-heartbeat`, collection helper |
-| `_meta/` | generated inventories: crontabs, enabled unit list |
+| `_meta/` | generated inventories: crontabs, enabled services/sockets/timers |
 
 ## Never committed
 
@@ -42,7 +42,15 @@ cloning `main`.
 
 ### Config onto a live host
 
-Copy each tree back to its source path with `install -D -m 0644`, then:
+Copy each tree back to its source path with `install -D -m 0644`. Drop-in
+trees are not covered by copying the flat units, so install them explicitly:
+
+```bash
+sudo install -D -m 0644 systemd/quartz-oracle.service.d/bind.conf /etc/systemd/system/quartz-oracle.service.d/bind.conf
+sudo install -D -m 0644 systemd/quartz-oracle.service.d/hardening.conf /etc/systemd/system/quartz-oracle.service.d/hardening.conf
+```
+
+then:
 
 ```bash
 sudo nginx -t && sudo systemctl reload nginx

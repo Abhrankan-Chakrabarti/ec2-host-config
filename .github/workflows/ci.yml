@@ -23,6 +23,18 @@ jobs:
           bash -n monitoring/setup-cpucredit-alarms.sh
           sh -n .githooks/pre-commit
 
+      - name: Systemd drop-ins documented
+        run: |
+          status=0
+          for d in systemd/*/; do
+            [ -d "$d" ] || continue
+            if ! grep -qF "install -D -m 0644 ${d%/}/" README.md; then
+              echo "missing restore install line for ${d%/}"
+              status=1
+            fi
+          done
+          exit $status
+
       - name: JSON validity
         run: |
           for f in backup/*.json; do

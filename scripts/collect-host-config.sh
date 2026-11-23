@@ -38,7 +38,7 @@ copy /usr/local/bin/update-all 2>/dev/null || true
 copy /usr/local/bin/quartz-oracle-heartbeat 2>/dev/null || true
 
 # Only host-local (non-symlink) unit files; vendor units are reproducible from packages.
-for u in /etc/systemd/system/*.service /etc/systemd/system/*.timer; do
+for u in /etc/systemd/system/*.service /etc/systemd/system/*.timer /etc/systemd/system/*.socket; do
   [ -f "$u" ] && [ ! -L "$u" ] && copy "$u"
 done
 
@@ -57,7 +57,7 @@ dump_crontab() {
 }
 dump_crontab root "$OUT/_meta/root.crontab"
 dump_crontab ec2-user "$OUT/_meta/ec2-user.crontab"
-systemctl list-unit-files --type=service --state=enabled --no-pager \
+systemctl list-unit-files --type=service,socket,timer --state=enabled --no-pager \
   > "$OUT/_meta/enabled-units.txt" 2>/dev/null || true
 
 echo "--- secret scan (inspect before upload) ---"
