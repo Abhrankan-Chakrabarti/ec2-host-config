@@ -43,11 +43,13 @@ cloning `main`.
 ### Config onto a live host
 
 Copy each tree back to its source path with `install -D -m 0644`. Drop-in
-trees are not covered by copying the flat units, so install them explicitly:
+trees are not covered by copying the flat units, so install them explicitly
+(`cockpit.socket.d/override.conf` pins the socket to loopback):
 
 ```bash
 sudo install -D -m 0644 systemd/quartz-oracle.service.d/bind.conf /etc/systemd/system/quartz-oracle.service.d/bind.conf
 sudo install -D -m 0644 systemd/quartz-oracle.service.d/hardening.conf /etc/systemd/system/quartz-oracle.service.d/hardening.conf
+sudo install -D -m 0644 systemd/cockpit.socket.d/override.conf /etc/systemd/system/cockpit.socket.d/override.conf
 ```
 
 then:
