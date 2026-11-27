@@ -1,0 +1,8 @@
+# Basic Tor configuration
+# SocksPort is configured dynamically by entrypoint.sh
+# Default: 0.0.0.0:9050 (DEPRECATED - will change to 127.0.0.1 in v2.0)
+# Set SOCKS_BIND=127.0.0.1 to use secure localhost-only binding
+Log notice stdout
+DataDirectory /var/lib/tor
+
+# Hidden services will be configured dynamically by the entrypoint script

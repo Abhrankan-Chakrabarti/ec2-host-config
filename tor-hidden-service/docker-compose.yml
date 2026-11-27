@@ -1,0 +1,56 @@
+# Pinned so the project keeps the existing tor-hidden-service-docker_tor-data
+# volume (onion keys) no matter which directory this file is cloned into.
+name: tor-hidden-service-docker
+
+services:
+  # Example web service
+  web:
+    image: nginx:alpine
+    container_name: web-container
+    restart: unless-stopped
+    volumes:
+      - ./example-site:/usr/share/nginx/html
+    networks:
+      - tor-network
+
+  # Tor hidden service
+  tor:
+    build: .
+    container_name: tor-hidden-service
+    restart: unless-stopped
+    depends_on:
+      - web
+    environment:
+      # HS_[NAME]: [HOST]:[PORT]:[VIRTUAL_PORT]
+      HS_WEB: web:80:80
+      # SOCKS_BIND: 127.0.0.1   # restrict SOCKS to localhost (default 0.0.0.0 until v2.0)
+      #
+      # Per-HS DoS hardening. See README "Custom torrc directives".
+      # HSTORRC_WEB: |
+      #   HiddenServicePoWDefensesEnabled 1
+      #   HiddenServicePoWQueueRate 250
+      #   HiddenServicePoWQueueBurst 1000
+      #   HiddenServiceEnableIntroDoSDefense 1
+      #   HiddenServiceEnableIntroDoSRatePerSec 25
+      #   HiddenServiceEnableIntroDoSBurstPerSec 200
+    networks:
+      - tor-network
+    volumes:
+      - tor-data:/var/lib/tor # Persist onion addresses
+    # Resource limits to prevent resource exhaustion attacks
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+networks:
+  tor-network:
+    driver: bridge
+
+volumes:
+  tor-data:
+    driver: local

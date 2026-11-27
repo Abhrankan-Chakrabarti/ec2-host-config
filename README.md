@@ -21,6 +21,7 @@ without access to the owner's account.
 | `systemd/` | `/etc/systemd/system/*.service`, `*.socket`, `*.timer`, and `*.d/*.conf` (host-local only) |
 | `letsencrypt/` | `renewal/*.conf`, `cli.ini`, `options-ssl-nginx.conf` (no keys) |
 | `scripts/` | `/usr/local/bin/update-all`, `/usr/local/bin/quartz-oracle-heartbeat`, collection helper |
+| `tor-hidden-service/` | `~/tor-hidden-service-docker/` compose project; onion keys live in its `tor-hidden-service-docker_tor-data` volume |
 | `_meta/` | generated inventories: crontabs, enabled services/sockets/timers |
 
 ## Never committed
@@ -30,13 +31,14 @@ without access to the owner's account.
 - `/etc/nginx/*.htpasswd` (password hashes)
 - `/etc/letsencrypt/archive/`, `live/`, `accounts/` (TLS private keys)
 - `/etc/ssh/ssh_host_*` (host private keys)
+- `tor-hidden-service-docker_tor-data` Docker volume (onion service private keys)
 - AWS credentials, `.pem` files
 
 ## Restore
 
 Two cases: putting files back on a live host, or rebuilding the host.
 
-`v1.2.7` is the known-good baseline. If this repo is lost or rewritten, download
+`v1.2.8` is the known-good baseline. If this repo is lost or rewritten, download
 the release archive (`Source code (zip)`) from the Releases page rather than
 cloning `main`.
 
@@ -61,6 +63,26 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo systemctl daemon-reload
 sudo systemctl restart pixel-forensics quartz-oracle lab-api crypto-lab abhrankan-status
 ```
+
+### Tor hidden service
+
+The compose project is vendored under `tor-hidden-service/` (upstream
+[hundehausen/tor-hidden-service-docker](https://github.com/hundehausen/tor-hidden-service-docker),
+MIT). Its compose file pins `name: tor-hidden-service-docker`, so it keeps
+using the existing `tor-hidden-service-docker_tor-data` volume regardless of
+where the repo is cloned. Restore it with:
+
+```bash
+mkdir -p ~/tor-hidden-service-docker
+cp -a tor-hidden-service/. ~/tor-hidden-service-docker/
+cd ~/tor-hidden-service-docker
+docker compose up -d --build
+```
+
+Both services run with `restart: unless-stopped`, so they return when Docker
+starts. The onion keys are not in this repo: restoring only from the release
+archive generates a new onion address, while an EBS snapshot preserves the
+volume.
 
 ### HTTP hardening
 
@@ -140,7 +162,8 @@ curl -skI https://uptime.abhrankan.duckdns.org/ | grep -iE 'strict-transport|x-c
    done
    ```
 
-5. Verify: `curl -fsS https://pixel.forensic.dpdns.org/api/health`, run the
+5. Restore the [Tor hidden service](#tor-hidden-service) compose project, then
+   verify: `curl -fsS https://pixel.forensic.dpdns.org/api/health`, run the
    [HTTP hardening](#http-hardening) checks, then check that the UptimeRobot
    monitors recover. Recreate the CloudWatch burst-credit alarms
    (see [Burst-credit alarms](#burst-credit-alarms)); they live in the account,
@@ -150,7 +173,9 @@ curl -skI https://uptime.abhrankan.duckdns.org/ | grep -iE 'strict-transport|x-c
 
 Run `scripts/collect-host-config.sh` on the host, then replace the trees here
 with its output. The script re-execs under `sudo`, skips secret paths, and
-prints a scan of anything that looks credential-like before you commit.
+prints a scan of anything that looks credential-like before you commit. The
+Tor project lives outside `/etc`, so it is not in the collector output; update
+`tor-hidden-service/` by hand from `~/tor-hidden-service-docker`.
 
 Enable the commit guard once per clone:
 

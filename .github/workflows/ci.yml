@@ -22,6 +22,10 @@ jobs:
           bash -n scripts/quartz-oracle-heartbeat
           bash -n monitoring/setup-cpucredit-alarms.sh
           sh -n .githooks/pre-commit
+          sh -n tor-hidden-service/entrypoint.sh
+
+      - name: Compose validity
+        run: docker compose -f tor-hidden-service/docker-compose.yml config --quiet
 
       - name: Systemd drop-ins documented
         run: |

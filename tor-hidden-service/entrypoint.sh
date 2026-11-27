@@ -1,0 +1,285 @@
+#!/bin/sh
+set -e
+
+# Runtime configuration is generated on the data volume, which the tor user owns
+TORRC_FILE=/var/lib/tor/torrc
+
+# Ensure Tor data directory exists and is writable
+# This must be done before creating any hidden service subdirectories
+if [ ! -d /var/lib/tor ]; then
+    echo "ERROR: /var/lib/tor does not exist. Mount a volume at /var/lib/tor." >&2
+    exit 1
+fi
+
+if ! chmod 700 /var/lib/tor 2>/dev/null; then
+    echo "ERROR: /var/lib/tor must be owned by uid $(id -u):$(id -g) and writable." >&2
+    echo "ERROR: For bind mounts, chown -R 100:101 the host directory." >&2
+    exit 1
+fi
+
+# Build the runtime torrc from the image's read-only copy
+cp /etc/tor/torrc "$TORRC_FILE"
+
+# Configure SOCKS proxy bind address
+# SECURITY DEPRECATION: Defaulting to 0.0.0.0 for backward compatibility.
+# This exposes the SOCKS proxy to all interfaces which is a security risk.
+# In a future major version, the default will change to 127.0.0.1.
+# To secure your deployment now, explicitly set SOCKS_BIND=127.0.0.1
+SOCKS_BIND_EXPLICIT=${SOCKS_BIND}
+SOCKS_BIND=${SOCKS_BIND:-0.0.0.0}
+
+# Add the SOCKS port configuration
+echo "SocksPort ${SOCKS_BIND}:9050" >> "$TORRC_FILE"
+
+# Log the configuration with security warning if using default
+if [ -z "$SOCKS_BIND_EXPLICIT" ] && [ "$SOCKS_BIND" = "0.0.0.0" ]; then
+    echo "WARNING: SOCKS proxy is exposed on all interfaces (0.0.0.0:9050)"
+    echo "WARNING: This is a security risk. Other containers/networks can use your Tor proxy."
+    echo "WARNING: Set SOCKS_BIND=127.0.0.1 to restrict to localhost only."
+    echo "WARNING: In a future version, 127.0.0.1 will be the default."
+else
+    echo "SOCKS proxy configured to bind to: ${SOCKS_BIND}:9050"
+fi
+
+# Append a torrc block under a section comment. Strips NUL/CR.
+append_torrc_block() {
+    block_label=$1
+    block_content=$2
+
+    [ -z "$block_content" ] && return 0
+
+    printf '\n# %s\n' "$block_label" >> "$TORRC_FILE"
+    printf '%s\n' "$block_content" | tr -d '\000\r' >> "$TORRC_FILE"
+
+    echo "==> Appended ${block_label}:"
+    printf '%s\n' "$block_content" | tr -d '\000\r' | sed 's/^/    /'
+}
+
+append_torrc_block "Custom global torrc (TORRC env var)" "${TORRC:-}"
+
+# Security validation functions
+validate_service_name() {
+    local name=$1
+    # Allow only alphanumeric, hyphens, and underscores
+    case "$name" in
+        *[!a-zA-Z0-9_-]*)
+            echo "ERROR: Invalid service name: '$name'" >&2
+            echo "ERROR: Service names may only contain letters, digits, hyphens, and underscores" >&2
+            return 1
+            ;;
+    esac
+    
+    # Check length (max 64 chars for directory name)
+    if [ ${#name} -gt 64 ] || [ ${#name} -eq 0 ]; then
+        echo "ERROR: Service name must be between 1 and 64 characters: '$name'" >&2
+        return 1
+    fi
+    
+    # Must start with alphanumeric
+    case "$name" in
+        [a-zA-Z0-9]*) ;;
+        *)
+            echo "ERROR: Service name must start with alphanumeric character: '$name'" >&2
+            return 1
+            ;;
+    esac
+    
+    return 0
+}
+
+validate_port() {
+    local port=$1
+    local name=$2
+    
+    # Check if port is a number
+    case "$port" in
+        ''|*[!0-9]*)
+            echo "ERROR: Invalid port for service '$name': '$port' (must be a number)" >&2
+            return 1
+            ;;
+    esac
+    
+    # Check port range (1-65535)
+    if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+        echo "ERROR: Port out of range for service '$name': $port (must be 1-65535)" >&2
+        return 1
+    fi
+    
+    return 0
+}
+
+validate_hostname() {
+    local host=$1
+    local name=$2
+    
+    # Reject empty hostnames
+    if [ -z "$host" ]; then
+        echo "ERROR: Empty hostname for service '$name'" >&2
+        return 1
+    fi
+    
+    # Check for obviously malicious patterns using grep
+    if echo "$host" | grep -qE '[;|&<>$`\\]'; then
+        echo "ERROR: Invalid hostname for service '$name': '$host' contains special characters" >&2
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to create a hidden service configuration
+create_hidden_service() {
+    local service_name=$1
+    local target_host=$2
+    local target_port=$3
+    local virtual_port=$4
+
+    # Defense in depth: validate service name again before using in path
+    if ! validate_service_name "$service_name"; then
+        echo "ERROR: Aborting creation of hidden service due to invalid name" >&2
+        return 1
+    fi
+
+    # If virtual port is not specified, use the target port
+    if [ -z "$virtual_port" ]; then
+        virtual_port=$target_port
+    fi
+
+    # Create directory for the hidden service if it doesn't exist
+    # Use printf to safely construct the path
+    local service_dir
+    service_dir=$(printf '/var/lib/tor/%s' "$service_name")
+    
+    # Security check: ensure the resolved path is still under /var/lib/tor
+    # This prevents path traversal even if validation was bypassed
+    case "$service_dir" in
+        /var/lib/tor/*) ;;
+        *)
+            echo "ERROR: Security violation - service directory escapes /var/lib/tor: $service_dir" >&2
+            return 1
+            ;;
+    esac
+    
+    if [ ! -d "$service_dir" ]; then
+        mkdir -p "$service_dir" || {
+            echo "ERROR: Failed to create directory: $service_dir" >&2
+            return 1
+        }
+    fi
+    
+    # Check if this is a pre-existing service with keys
+    if [ -f "${service_dir}/private_key" ] || [ -f "${service_dir}/hs_ed25519_secret_key" ]; then
+        echo "Found existing keys for hidden service: $service_name"
+    fi
+    
+    # Ensure proper permissions
+    chown -R tor:tor "$service_dir" || {
+        echo "ERROR: Failed to set ownership on: $service_dir" >&2
+        return 1
+    }
+    chmod -R 700 "$service_dir" || {
+        echo "ERROR: Failed to set permissions on: $service_dir" >&2
+        return 1
+    }
+
+    # Add hidden service configuration to torrc
+    printf '\n# Hidden service: %s\n' "$service_name" >> "$TORRC_FILE"
+    printf 'HiddenServiceDir %s\n' "$service_dir" >> "$TORRC_FILE"
+    printf 'HiddenServicePort %s %s:%s\n' "$virtual_port" "$target_host" "$target_port" >> "$TORRC_FILE"
+
+    # Hyphens in service names become underscores; env names can't have hyphens.
+    hs_torrc_var="HSTORRC_$(printf '%s' "$service_name" | tr '-' '_')"
+    hs_torrc_value=$(printenv "$hs_torrc_var" 2>/dev/null || true)
+    append_torrc_block "Per-service torrc (${hs_torrc_var})" "$hs_torrc_value"
+
+    echo "Configured hidden service for $service_name: $target_host:$target_port -> $virtual_port"
+}
+
+# Process environment variables for hidden services
+# Format: HS_[SERVICE_NAME]=[TARGET_HOST]:[TARGET_PORT]:[VIRTUAL_PORT]
+# Example: HS_WEB=web:80:80
+env | grep '^HS_' | while IFS= read -r var; do
+    # Skip if variable is empty or malformed
+    [ -z "$var" ] && continue
+    
+    # Extract service name (everything between HS_ and first =)
+    service_name=$(printf '%s' "$var" | cut -d= -f1 | sed 's/^HS_//')
+    value=$(printf '%s' "$var" | cut -d= -f2-)
+    
+    # Validate service name (prevents path traversal)
+    validate_service_name "$service_name" || continue
+    
+    # Parse the value - must have at least HOST:PORT
+    target_host=$(printf '%s' "$value" | cut -d: -f1)
+    target_port=$(printf '%s' "$value" | cut -d: -f2)
+    virtual_port=$(printf '%s' "$value" | cut -d: -f3)
+    
+    # Validate hostname
+    validate_hostname "$target_host" "$service_name" || continue
+    
+    # Validate target port
+    validate_port "$target_port" "$service_name" || continue
+    
+    # Validate virtual port (if provided, otherwise will default to target_port)
+    if [ -n "$virtual_port" ]; then
+        validate_port "$virtual_port" "$service_name" || continue
+    fi
+    
+    create_hidden_service "$service_name" "$target_host" "$target_port" "$virtual_port"
+done
+
+# Process command line arguments
+# Format: [SERVICE_NAME]:[TARGET_HOST]:[TARGET_PORT]:[VIRTUAL_PORT]
+for arg in "$@"; do
+    case "$arg" in
+        *:*:*)
+            service_name=$(printf '%s' "$arg" | cut -d: -f1)
+            target_host=$(printf '%s' "$arg" | cut -d: -f2)
+            target_port=$(printf '%s' "$arg" | cut -d: -f3)
+            virtual_port=$(printf '%s' "$arg" | cut -d: -f4)
+
+            # Validate all inputs
+            validate_service_name "$service_name" || continue
+            validate_hostname "$target_host" "$service_name" || continue
+            validate_port "$target_port" "$service_name" || continue
+            if [ -n "$virtual_port" ]; then
+                validate_port "$virtual_port" "$service_name" || continue
+            fi
+
+            create_hidden_service "$service_name" "$target_host" "$target_port" "$virtual_port"
+            ;;
+    esac
+done
+
+# Print all onion addresses after a short delay to allow Tor to generate them
+print_onion_addresses() {
+    sleep 10
+    echo "======== TOR HIDDEN SERVICES ========"
+    for dir in /var/lib/tor/*/; do
+        if [ -f "${dir}hostname" ]; then
+            service_name=$(basename "$dir")
+            onion_address=$(cat "${dir}hostname")
+            echo "$service_name: $onion_address"
+        fi
+    done
+    echo "===================================="
+}
+
+# Start printing onion addresses in the background
+print_onion_addresses &
+
+echo "Starting Tor..."
+
+# If no arguments were provided, run Tor with the generated config
+if [ $# -eq 0 ]; then
+    exec tor -f "$TORRC_FILE"
+fi
+
+# If the first argument is "tor", run it with the generated config
+if [ "$1" = "tor" ]; then
+    shift
+    exec tor -f "$TORRC_FILE" "$@"
+fi
+
+# Otherwise, run the command as-is
+exec "$@"
