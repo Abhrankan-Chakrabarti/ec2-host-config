@@ -80,9 +80,10 @@ docker compose up -d --build
 ```
 
 Both services run with `restart: unless-stopped`, so they return when Docker
-starts. The onion keys are not in this repo: restoring only from the release
-archive generates a new onion address, while an EBS snapshot preserves the
-volume.
+starts. `example-site/` mirrors `abhrankan.github.io`'s `index.html`; copy the
+page over when it changes. The onion keys are not in this repo: restoring only
+from the release archive generates a new onion address, while an EBS snapshot
+preserves the volume.
 
 ### HTTP hardening
 
