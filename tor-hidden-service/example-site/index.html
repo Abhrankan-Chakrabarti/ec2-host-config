@@ -120,6 +120,32 @@ h2{
     color:var(--accent);
 }
 
+.project-list li.project-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:16px;
+}
+
+.project-list li.project-row a.project-main{
+    flex:1;
+}
+
+.project-list li.project-row a.mirror-link{
+    display:inline;
+    padding:16px 0;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--text-dim);
+    flex-shrink:0;
+}
+
+.project-list li.project-row a.mirror-link:hover{
+    color:var(--accent);
+    text-decoration:underline;
+}
+
 .tag{
     font-size:0.72rem;
     text-transform:uppercase;
@@ -232,46 +258,52 @@ footer a:hover{
 
     <ul class="project-list">
 
-        <li>
-            <a href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/deergrit/" target="_blank" rel="noopener">
+        <li class="project-row">
+            <a class="project-main" href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/deergrit/" target="_blank" rel="noopener">
                 Deergrit
                 <span class="tag">Knowledge Archive</span>
             </a>
+            <a class="mirror-link" href="http://ftk4x6klwl5uwkgk75smxlod5hvxy4ayjct42vicubivznxjx5fyilyd.onion/deergrit/" target="_blank" rel="noopener">SegFault</a>
         </li>
 
-        <li>
-            <a href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/fantasycrop/" target="_blank" rel="noopener">
+        <li class="project-row">
+            <a class="project-main" href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/fantasycrop/" target="_blank" rel="noopener">
                 FantasyCrop
                 <span class="tag">Web Laboratory</span>
             </a>
+            <a class="mirror-link" href="http://ftk4x6klwl5uwkgk75smxlod5hvxy4ayjct42vicubivznxjx5fyilyd.onion/fantasycrop/" target="_blank" rel="noopener">SegFault</a>
         </li>
 
-        <li>
-            <a href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/flatspoil/" target="_blank" rel="noopener">
+        <li class="project-row">
+            <a class="project-main" href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/flatspoil/" target="_blank" rel="noopener">
                 Flatspoil
                 <span class="tag">Plain Explanations</span>
             </a>
+            <a class="mirror-link" href="http://ftk4x6klwl5uwkgk75smxlod5hvxy4ayjct42vicubivznxjx5fyilyd.onion/flatspoil/" target="_blank" rel="noopener">SegFault</a>
         </li>
 
-        <li>
-            <a href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/luggageice/" target="_blank" rel="noopener">
+        <li class="project-row">
+            <a class="project-main" href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/luggageice/" target="_blank" rel="noopener">
                 Luggage Ice
                 <span class="tag">Technical Essays</span>
             </a>
+            <a class="mirror-link" href="http://senpjoekkf4hlth6ej5lyqoizi62ois6u44zpd5vucuzo3w4sz4tw3qd.onion/luggageice/" target="_blank" rel="noopener">SegFault</a>
         </li>
 
-        <li>
-            <a href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/rallymean/" target="_blank" rel="noopener">
+        <li class="project-row">
+            <a class="project-main" href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/rallymean/" target="_blank" rel="noopener">
                 RallyMean
                 <span class="tag tag-red">Signal Environment</span>
             </a>
+            <a class="mirror-link" href="http://senpjoekkf4hlth6ej5lyqoizi62ois6u44zpd5vucuzo3w4sz4tw3qd.onion/rallymean/" target="_blank" rel="noopener">SegFault</a>
         </li>
 
-        <li>
-            <a href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/videoonly/" target="_blank" rel="noopener">
+        <li class="project-row">
+            <a class="project-main" href="http://abhrajj66reu5bibkjdcf6ixla7ycpj2cpkvmi4a7rxhddqu34xn24qd.onion/videoonly/" target="_blank" rel="noopener">
                 Videoonly
                 <span class="tag">Confession Archive</span>
             </a>
+            <a class="mirror-link" href="http://ftk4x6klwl5uwkgk75smxlod5hvxy4ayjct42vicubivznxjx5fyilyd.onion/videoonly/" target="_blank" rel="noopener">SegFault</a>
         </li>
 
     </ul>
