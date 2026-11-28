@@ -56,6 +56,19 @@ sudo install -D -m 0644 systemd/quartz-oracle.service.d/bind.conf /etc/systemd/s
 sudo install -D -m 0644 systemd/quartz-oracle.service.d/hardening.conf /etc/systemd/system/quartz-oracle.service.d/hardening.conf
 ```
 
+`sshd` reads only `/etc/ssh/sshd_config` and `/etc/ssh/sshd_config.d/*.conf`, so
+the SSH files are installed one by one as well. `50-redhat.conf` ships with
+`openssh-server`; installing it here pins the crypto policy to this snapshot, so
+refresh the snapshot before restoring rather than after:
+
+```bash
+sudo install -D -m 0600 ssh/sshd_config /etc/ssh/sshd_config
+sudo install -D -m 0644 ssh/sshd_config.d/00-hardening.conf /etc/ssh/sshd_config.d/00-hardening.conf
+sudo install -D -m 0600 ssh/sshd_config.d/50-redhat.conf /etc/ssh/sshd_config.d/50-redhat.conf
+sudo install -D -m 0644 ssh/sshd_config.d/60-custom-passwords.conf /etc/ssh/sshd_config.d/60-custom-passwords.conf
+sudo install -D -m 0644 ssh/sshd_config.d/99-hardening.conf /etc/ssh/sshd_config.d/99-hardening.conf
+```
+
 then:
 
 ```bash
@@ -149,7 +162,7 @@ curl -skI https://uptime.abhrankan.duckdns.org/ | grep -iE 'strict-transport|x-c
    ```bash
    sudo install -m 0755 scripts/update-all /usr/local/bin/update-all
    sudo install -m 0755 scripts/quartz-oracle-heartbeat /usr/local/bin/quartz-oracle-heartbeat
-   sudo sshd -t && sudo systemctl reload sshd    # after copying ssh/
+   sudo sshd -t && sudo systemctl reload sshd    # after installing ssh/ above
    ```
 
 4. Reissue certificates one name at a time, matching the existing `live/`
